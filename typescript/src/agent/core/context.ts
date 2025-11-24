@@ -69,6 +69,9 @@ export interface IAgentContext {
    */
   nodeResults?: NodeResult[];
 
+  // Last node result captured for this run, if any
+  lastNodeResult?: NodeResult;
+
   // Last error captured for this run, if any
   error?: unknown;
 }

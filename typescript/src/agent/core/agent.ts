@@ -1,4 +1,4 @@
-import { INode } from "@/nodes/core/node";
+import { INode, NodeResult } from "@/nodes/core/node";
 import { IAgentContext } from "@/agent/core/context";
 
 /**
@@ -16,7 +16,6 @@ export interface IAgentConfig {
  * Any agent implementation must respect this interface in order to be swappable.
  */
 export interface IAgent {
-  readonly id: string;
   context: IAgentContext;
 
   /**
@@ -55,7 +54,6 @@ export interface IAgent {
  * Concrete agents should extend this and implement the `run` method.
  */
 export abstract class BaseAgent implements IAgent {
-  readonly id: string;
   context: IAgentContext;
 
   // First node in the chain
@@ -69,8 +67,9 @@ export abstract class BaseAgent implements IAgent {
   // Execution configuration (limits, mode, etc.)
   protected config: IAgentConfig = {};
 
-  constructor(id: string, initialContext: IAgentContext) {
-    this.id = id;
+  protected lastNodeResult: NodeResult | null = null;
+
+  constructor(initialContext: IAgentContext) {
     this.context = initialContext;
   }
 
@@ -112,8 +111,8 @@ export abstract class BaseAgent implements IAgent {
  * - Captures node return values and stores them in ctx.nodeResults
  */
 export class Agent extends BaseAgent {
-  constructor(id: string, initialContext: IAgentContext) {
-    super(id, initialContext);
+  constructor(initialContext: IAgentContext) {
+    super(initialContext);
   }
 
   async run(initial?: Partial<IAgentContext>): Promise<IAgentContext> {
@@ -123,10 +122,6 @@ export class Agent extends BaseAgent {
 
     if (!this.root) {
       throw new Error("Agent has no nodes configured");
-    }
-
-    if (!this.context.user || !this.context.user.request) {
-      throw new Error("AgentContext.user.request is required");
     }
 
     this.context.nodeResults ??= [];
@@ -162,6 +157,7 @@ export class Agent extends BaseAgent {
 
         if (result) {
           this.context.nodeResults.push(result);
+          this.context.lastNodeResult = result;
         }
 
         if (this.context.telemetry?.events) {

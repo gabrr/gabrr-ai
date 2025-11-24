@@ -1,19 +1,21 @@
-import { csvToTextAgent, IAgentContext } from "@/agent";
-import { BaseNode, INode, LoadFileNode, LogNode, NodeResult } from "@/nodes";
+import { IAgentContext } from "@/agent";
+import { BaseNode, INode, NodeResult } from "@/nodes";
 
 class SwitchNode extends BaseNode {
-  constructor(public readonly csvHead: INode, public readonly pdfHead: INode) {
-    super("switch");
+  id = "switch";
+  nodes: INode[] = [];
+
+  switch(...nodes: INode[]) {
+    this.nodes = nodes;
+    return this;
   }
 
   async run(ctx: IAgentContext): Promise<NodeResult | void> {
-    console.log("SwitchNode: ", ctx);
-
     const originalNext = this.next;
 
     const useCSV = this.useCSV(ctx);
 
-    const chosenHead = useCSV ? this.csvHead : this.pdfHead;
+    const chosenHead = useCSV ? this.nodes[0] : this.nodes[1];
 
     let tail = chosenHead;
 
@@ -43,29 +45,6 @@ class SwitchNode extends BaseNode {
   }
 }
 
-class CsvToTextNode extends BaseNode {
-  constructor() {
-    super("csvToText");
-  }
-  async run(ctx: IAgentContext): Promise<NodeResult | void> {
-    return { nodeId: this.id, value: "csv to text" };
-  }
-}
+const switchNode = new SwitchNode();
 
-class PdfToTextNode extends BaseNode {
-  constructor() {
-    super("pdfToText");
-  }
-  async run(ctx: IAgentContext): Promise<NodeResult | void> {
-    return { nodeId: this.id, value: "pdf to text" };
-  }
-}
-
-const routeFileTypeNode = new SwitchNode(
-  new CsvToTextNode(),
-  new PdfToTextNode()
-);
-
-csvToTextAgent.add(LoadFileNode).add(routeFileTypeNode).add(LogNode);
-
-export default csvToTextAgent;
+export { switchNode };

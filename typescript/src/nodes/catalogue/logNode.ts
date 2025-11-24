@@ -2,9 +2,7 @@ import { IAgentContext } from "@/agent";
 import { BaseNode, NodeResult } from "@/nodes";
 
 class LogNode extends BaseNode {
-  constructor() {
-    super("logNode");
-  }
+  id = "logNode";
 
   async run(ctx: IAgentContext): Promise<NodeResult | void> {
     const previousResult = ctx.nodeResults?.at(-1);

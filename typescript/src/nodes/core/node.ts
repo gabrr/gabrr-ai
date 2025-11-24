@@ -82,13 +82,12 @@ export interface INode {
  * loadFile.add(nextNode).error(new WarnUserNode());
  */
 export abstract class BaseNode implements INode {
+  abstract id: string;
   next: INode | null = null;
   errorHandler: INode | null = null;
 
   // Optional per-node configuration, set via .options()
   protected _options: Record<string, unknown> = {};
-
-  constructor(public readonly id: string) {}
 
   add(node: INode): INode {
     this.next = node;

@@ -61,6 +61,8 @@ export abstract class BaseAgent implements IAgent {
   // First node in the chain
   protected root: INode | null = null;
 
+  protected lastNode: INode | null = null;
+
   // Fallback error handler when a node throws
   protected globalErrorHandler: INode | null = null;
 
@@ -85,13 +87,12 @@ export abstract class BaseAgent implements IAgent {
   add(node: INode): INode {
     if (!this.root) {
       this.root = node;
+      this.lastNode = node;
     } else {
-      let tail = this.root;
-      while (tail.next) {
-        tail = tail.next;
-      }
-      tail.next = node;
+      this.lastNode!.next = node;
+      this.lastNode = node;
     }
+
     return node;
   }
 

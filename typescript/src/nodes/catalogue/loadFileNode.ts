@@ -7,7 +7,7 @@ class LoadFileNode extends BaseNode {
   }
 
   async run(ctx: IAgentContext): Promise<NodeResult | void> {
-    return { nodeId: this.id, value: "filename.pdf" };
+    return { nodeId: this.id, value: "filename.csv" };
   }
 }
 

@@ -2,9 +2,8 @@ import { IAgentContext } from "@/agent/core/context";
 
 /**
  * Result produced by a node during execution.
- * Each node implementation is responsible for:
- * - reading previous entries if needed
- * - pushing its own entry when it finishes
+ * Nodes return this value from run(), and the agent is responsible for
+ * storing it in ctx.nodeResults.
  */
 export interface NodeResult {
   nodeId: string;
@@ -14,6 +13,11 @@ export interface NodeResult {
 /**
  * Minimal node contract used by the agent.
  * Nodes are chained via `next` and may have a local `errorHandler`.
+ * The fluent methods allow:
+ * - `.add(nextNode)` to define the success path
+ * - `.error(handlerNode)` to define a local error handler
+ * - `.try(retryFlowNode)` to define a retry flow as a separate chain
+ * - `.options(config)` to attach node-specific configuration
  */
 export interface INode {
   id: string;
@@ -21,22 +25,40 @@ export interface INode {
   errorHandler: INode | null;
 
   /**
-   * Link another node as the success path of this node.
-   * Returns the passed node to support fluent chaining.
-   *
-   * @example
-   * loadFile.add(extract).add(normalize);
+   * Attach a node as the success path after this node.
+   * Returns the passed node to support chaining like:
+   *   a.add(b).add(c)
    */
   add(node: INode): INode;
+
+  /**
+   * Set a local error handler for this node.
+   * Returns `this` so you can keep chaining the main flow:
+   *   normalize.error(warnUser).add(nextNode)
+   */
+  error(handler: INode): this;
+
+  /**
+   * Attach a retry (or recovery) flow as this node's error path.
+   * Returns the retry node so you can chain its own sequence:
+   *   categorize.try(tryAgain.options(...).add(...))
+   */
+  try(node: INode): INode;
+
+  /**
+   * Attach node-specific configuration (implementation-defined).
+   * BaseNode stores it, concrete nodes decide how to use it.
+   */
+  options(opts: Record<string, unknown>): this;
 
   /**
    * Execute this node.
    * Implementations should:
    * - read any previous results they depend on from `ctx.nodeResults`
-   * - push their own result into `ctx.nodeResults`
+   * - return a NodeResult (or void) which the agent will store
    * - optionally update other fields in `ctx` as needed
    */
-  run(ctx?: IAgentContext): Promise<void>;
+  run(ctx: IAgentContext): Promise<NodeResult | void>;
 }
 
 /**
@@ -49,20 +71,22 @@ export interface INode {
  *     super("loadFile");
  *   }
  *
- *   async run(ctx: IAgentContext): Promise<void> {
- *     ctx.nodeResults ??= [];
+ *   async run(ctx: AgentContext): Promise<NodeResult | void> {
  *     const raw = ctx.user.request;
- *     ctx.nodeResults.push({ nodeId: this.id, value: raw });
+ *     return { nodeId: this.id, value: raw };
  *   }
  * }
  *
  * const loadFile = new LoadFileNode();
  * const nextNode = new SomeOtherNode();
- * loadFile.add(nextNode);
+ * loadFile.add(nextNode).error(new WarnUserNode());
  */
 export abstract class BaseNode implements INode {
   next: INode | null = null;
   errorHandler: INode | null = null;
+
+  // Optional per-node configuration, set via .options()
+  protected _options: Record<string, unknown> = {};
 
   constructor(public readonly id: string) {}
 
@@ -71,5 +95,20 @@ export abstract class BaseNode implements INode {
     return node;
   }
 
-  abstract run(ctx: IAgentContext): Promise<void>;
+  error(handler: INode): this {
+    this.errorHandler = handler;
+    return this;
+  }
+
+  try(node: INode): INode {
+    this.errorHandler = node;
+    return node;
+  }
+
+  options(opts: Record<string, unknown>): this {
+    this._options = { ...this._options, ...opts };
+    return this;
+  }
+
+  abstract run(ctx: IAgentContext): Promise<NodeResult | void>;
 }

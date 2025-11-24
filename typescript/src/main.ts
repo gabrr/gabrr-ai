@@ -1,3 +1,7 @@
 import csvDemo from "./playground/csv-demo";
 
-csvDemo.run();
+csvDemo.run({
+  user: {
+    request: "Hello, world!",
+  },
+});

@@ -57,9 +57,8 @@ export interface IAgentContext {
 
   /**
    * Log of results produced by nodes during this run.
-   * Nodes should:
-   * - read from this array to access previous node outputs
-   * - push their own { nodeId, value } after successful execution
+   * The agent automatically stores return values from node.run() here.
+   * Nodes should read from this array to access previous node outputs.
    *
    * @example
    * const prev = ctx.nodeResults?.at(-1);

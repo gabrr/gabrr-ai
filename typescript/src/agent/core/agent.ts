@@ -108,7 +108,7 @@ export abstract class BaseAgent implements IAgent {
  * - Executes nodes in order, following `next`
  * - Applies `maxNodes` and `maxDurationMs` safety limits
  * - Records telemetry events if `context.telemetry.events` exists
- * - Delegates all node-result handling to the nodes themselves
+ * - Captures node return values and stores them in ctx.nodeResults
  */
 export class Agent extends BaseAgent {
   constructor(id: string, initialContext: IAgentContext) {
@@ -127,6 +127,8 @@ export class Agent extends BaseAgent {
     if (!this.context.user || !this.context.user.request) {
       throw new Error("AgentContext.user.request is required");
     }
+
+    this.context.nodeResults ??= [];
 
     let current: INode | null = this.root;
     let steps = 0;
@@ -155,7 +157,11 @@ export class Agent extends BaseAgent {
       }
 
       try {
-        await current.run(this.context);
+        const result = await current.run(this.context);
+
+        if (result) {
+          this.context.nodeResults.push(result);
+        }
 
         if (this.context.telemetry?.events) {
           this.context.telemetry.events.push({
@@ -183,6 +189,8 @@ export class Agent extends BaseAgent {
         current = current.errorHandler ?? this.globalErrorHandler;
       }
     }
+
+    console.log("Run completed. Final context: ", this.context);
 
     return this.context;
   }

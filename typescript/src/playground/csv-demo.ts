@@ -31,7 +31,7 @@ class SwitchNode extends BaseNode {
   }
 
   private useCSV(ctx: IAgentContext): boolean {
-    const previousResult = ctx.nodeResults?.at(-1)?.value;
+    const previousResult = ctx.lastNodeResult?.value;
     const isString = typeof previousResult === "string";
 
     if (

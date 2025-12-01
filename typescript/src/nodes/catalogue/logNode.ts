@@ -6,7 +6,10 @@ class LogNode extends BaseNode {
 
   async run(ctx: IAgentContext): Promise<NodeResult | void> {
     const previousResult = ctx.nodeResults?.at(-1);
-    return { nodeId: this.id, value: `logged: ${previousResult?.value}` };
+    return {
+      nodeId: this.id,
+      value: `logged: ${JSON.stringify(previousResult?.value)}`,
+    };
   }
 }
 
